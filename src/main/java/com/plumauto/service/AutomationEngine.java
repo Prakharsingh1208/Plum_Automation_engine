@@ -158,13 +158,11 @@ public class     AutomationEngine {
         if(exitCode!=0){
             memoryLog.append("Command failed with exit code: ").append(exitCode).append("\n");
             jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setStatus("failed");
-            jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setCompletedAt(LocalDateTime.now());
-            jobRepository.save(jobDetail);
         }else{
             jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setStatus("Completed");
-            jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setCompletedAt(LocalDateTime.now());
-            jobRepository.save(jobDetail);
         }
+        jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setCompletedAt(LocalDateTime.now());
+        jobRepository.save(jobDetail);
         memoryLog.append("\nProcess finished with exit code: ").append(exitCode);
         memoryLog.toString();
     }

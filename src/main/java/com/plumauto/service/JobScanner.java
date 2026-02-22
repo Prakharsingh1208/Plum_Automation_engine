@@ -1,18 +1,24 @@
 package com.plumauto.service;
 
 import com.plumauto.entity.RunDetails;
+import com.plumauto.repository.Job;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Data
 @Component
 public class JobScanner implements CommandLineRunner {
+
+    @Autowired
+    Job jobRepository;
     private final AutomationEngine automationEngine;
 
     // The @Lazy annotation breaks the cycle
@@ -31,11 +37,15 @@ public class JobScanner implements CommandLineRunner {
             if(currentJob!=null){
                 try {
                     automationEngine.runCommand(currentJob.getJobDetail(),currentJob.getBuildNumber());
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    currentJob.getJobDetail().findBuildDetailsByBuildNumber(currentJob.getBuildNumber()).setStatus("failed");
+                    currentJob.getJobDetail().findBuildDetailsByBuildNumber(currentJob.getBuildNumber()).setCompletedAt(LocalDateTime.now());
+                    jobRepository.save(currentJob.getJobDetail());
                 }
             }
             Thread.sleep(1000);
         }
     }
+
+
 }

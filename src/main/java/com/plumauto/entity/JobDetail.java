@@ -8,7 +8,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
-import java.util.Map;
 
 @Document(collection = "automationDetails")
 @Data
@@ -33,6 +32,6 @@ public class JobDetail {
                 }
             }
         }
-        return null; // Return null if not found
+        return null;
     }
 }
