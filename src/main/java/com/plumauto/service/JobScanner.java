@@ -1,18 +1,12 @@
 package com.plumauto.service;
 
-import com.plumauto.entity.BuildDetails;
-import com.plumauto.entity.JobDetail;
 import com.plumauto.entity.RunDetails;
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
