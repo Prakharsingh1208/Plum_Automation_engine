@@ -2,6 +2,7 @@ package com.plumauto.service;
 
 import com.plumauto.entity.BuildDetails;
 import com.plumauto.entity.JobDetail;
+import com.plumauto.entity.RunDetails;
 import com.plumauto.repository.Job;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,29 +93,34 @@ public class     AutomationEngine {
         if(job==null){
              throw new RuntimeException("Job not found: " + jobName);
         }
-        runner.getTaskQueue().add(job);
+        String BuildNumber = String.valueOf(job.getBuildNumber().size());
+
+        RunDetails runDetails = new RunDetails();
+        runDetails.setJobDetail(job);
+        runDetails.setBuildNumber(BuildNumber);
+        runner.getTaskQueue().add(runDetails);
+
         BuildDetails buildInfo = new BuildDetails();
-        buildInfo.setBuildNumber(String.valueOf(job.getBuildNumber().size()));
+        buildInfo.setBuildNumber(BuildNumber);
         buildInfo.setStatus("in-progress");
         buildInfo.setCreatedAt(LocalDateTime.now());
         job.getBuildNumber().add(buildInfo);
         jobRepository.save(job);
-        Path dirPath = Paths.get(rootPath.toAbsolutePath().toString()+"/"+job.getJobName()+"/"+ job.getBuildNumber().size());
-        Files.createDirectories(dirPath);
-//        System.out.println(runCommand(job));
 
+        Path dirPath = Paths.get(rootPath.toAbsolutePath().toString()+"/"+job.getJobName()+"/"+ BuildNumber);
+        Files.createDirectories(dirPath);
         return true;
     }
 
     @Async
-    public String runCommand(JobDetail jobDetail) throws IOException, InterruptedException {
+    public void runCommand(JobDetail jobDetail, String buildNumber) throws IOException, InterruptedException {
 
         Path path = rootPath.resolve(jobDetail.getJobName());
-        Path logPath = path.resolve(jobDetail.getBuildNumber().size()+"/build.logs"); //This creates a log file in the root directory of the automation engine. You can change this to a specific job directory if needed.
+        Path logPath = path.resolve(buildNumber+"/build.logs"); //This creates a log file in the root directory of the automation engine. You can change this to a specific job directory if needed.
         StringBuilder memoryLog = new StringBuilder();
 
 
-        Path runPath = path.resolve(jobDetail.getBuildNumber().size()+"/"+"run.sh");
+        Path runPath = path.resolve(buildNumber+"/"+"run.sh");
         String buildSH = "#!/bin/sh\n" + jobDetail.getBuildStep();
         Files.writeString(runPath, buildSH, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
@@ -124,7 +130,7 @@ public class     AutomationEngine {
 
         String dockerCmd = String.format(
                 "docker run --rm -v %s:/src -w /src alpine:latest sh -c \"%s\"",
-                rootPath.toAbsolutePath().toString() + "/" + jobDetail.getJobName() + "/" + jobDetail.getBuildNumber().size(),
+                rootPath.toAbsolutePath().toString() + "/" + jobDetail.getJobName() + "/" + buildNumber,
                 "./run.sh"
         );
 
@@ -144,20 +150,22 @@ public class     AutomationEngine {
                 // Write to File (for persistence)
                 writer.write(line);
                 writer.newLine();
+
+                System.out.println(line);
             }
         }
         int exitCode = process.waitFor();
         if(exitCode!=0){
             memoryLog.append("Command failed with exit code: ").append(exitCode).append("\n");
-            jobDetail.getBuildNumber().getLast().setStatus("failed");
-            jobDetail.getBuildNumber().getLast().setCompletedAt(LocalDateTime.now());
+            jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setStatus("failed");
+            jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setCompletedAt(LocalDateTime.now());
             jobRepository.save(jobDetail);
         }else{
-            jobDetail.getBuildNumber().get;
-            jobDetail.getBuildNumber().getLast().setCompletedAt(LocalDateTime.now());
+            jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setStatus("Completed");
+            jobDetail.getBuildNumber().get(Integer.parseInt(buildNumber)).setCompletedAt(LocalDateTime.now());
             jobRepository.save(jobDetail);
         }
         memoryLog.append("\nProcess finished with exit code: ").append(exitCode);
-        return memoryLog.toString();
+        memoryLog.toString();
     }
 }
