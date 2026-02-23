@@ -4,11 +4,12 @@ import com.plumauto.entity.BuildDetails;
 import com.plumauto.entity.JobDetail;
 import com.plumauto.entity.RunDetails;
 import com.plumauto.repository.Job;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -19,8 +20,10 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-@Component
+@Service
+@Slf4j
 public class     AutomationEngine {
     @Autowired
     Job jobRepository;
@@ -28,11 +31,10 @@ public class     AutomationEngine {
     @Autowired
     JobScanner runner;
 
-
-
     private final Path rootPath;
     public AutomationEngine(@Value("${app.auto-engine.path}")String rootPath) {
         this.rootPath = Paths.get(rootPath);
+
     }
 
     public boolean createJob(JobDetail jobDetail) throws IOException, InterruptedException {
@@ -40,6 +42,10 @@ public class     AutomationEngine {
         List<String> validateUsername = List.of(jobDetail.getJobName().split(" "));
         if(validateUsername.size()>1){
             throw new RuntimeException("Invalid Job Name: Job name should not contain spaces");
+        }
+        if(jobRepository.findByJobName(jobDetail.getJobName())!=null){
+            log.error("Job already exists with name: " + jobDetail.getJobName());
+            throw new RuntimeException("Job already exists with name: " + jobDetail.getJobName());
         }
         Files.createDirectories(Path.of(rootPath + "/" + jobDetail.getJobName()));
         List<BuildDetails> tempBuildInfo = new ArrayList<>();
@@ -112,6 +118,17 @@ public class     AutomationEngine {
         return true;
     }
 
+    public void abortBuild(String jobName, String buildId) throws IOException, InterruptedException {
+        String dockerKillCommand  = String.format("docker kill %s-%s", jobName, buildId);
+        ProcessBuilder ps = new ProcessBuilder("sh","-c",dockerKillCommand);
+        ps.inheritIO();
+        int status = ps.start().waitFor();
+        if(status!=0){
+            log.error("Failed to abort build: " + jobName + " Build Number: " + buildId);
+            throw new RuntimeException("Failed to abort build: " + jobName + " Build Number: " + buildId);
+        }
+    }
+
     @Async
     public void runCommand(JobDetail jobDetail, String buildNumber) throws IOException, InterruptedException {
 
@@ -128,18 +145,8 @@ public class     AutomationEngine {
         Set<PosixFilePermission> ownerFull = PosixFilePermissions.fromString("rwxr-xr-x");
         Files.setPosixFilePermissions(runPath, ownerFull);
 
-        String dockerCmd = String.format(
-                "docker run --rm -v %s:/src -w /src alpine:latest sh -c \"%s\"",
-                rootPath.toAbsolutePath().toString() + "/" + jobDetail.getJobName() + "/" + buildNumber,
-                "./run.sh"
-        );
+        Process process = getProcess(jobDetail, buildNumber);
 
-
-        ProcessBuilder ps = new ProcessBuilder("sh","-c",dockerCmd);
-        ps.directory(rootPath.toFile());
-        ps.redirectErrorStream(true);
-
-        Process process = ps.start();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
              BufferedWriter writer = Files.newBufferedWriter(logPath, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
             String line;
@@ -165,5 +172,23 @@ public class     AutomationEngine {
         jobRepository.save(jobDetail);
         memoryLog.append("\nProcess finished with exit code: ").append(exitCode);
         memoryLog.toString();
+
+    }
+
+    private Process getProcess(JobDetail jobDetail, String buildNumber) throws IOException {
+        String dockerCmd = String.format(
+                "docker run --rm -v %s:/src -w /src --name %s alpine:latest sh -c \"%s\"",
+                rootPath.toAbsolutePath().toString() + "/" + jobDetail.getJobName() + "/" + buildNumber,
+                jobDetail.getJobName()+"-"+ buildNumber,
+                "./run.sh"
+        );
+
+        log.info("Executing command: " + dockerCmd);
+        ProcessBuilder ps = new ProcessBuilder("sh","-c",dockerCmd);
+        ps.directory(rootPath.toFile());
+        ps.redirectErrorStream(true);
+
+        Process process = ps.start();
+        return process;
     }
 }

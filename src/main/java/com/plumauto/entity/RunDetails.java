@@ -6,4 +6,5 @@ import lombok.Data;
 public class RunDetails {
     private String buildNumber;
     private JobDetail jobDetail;
+    private long pid;
 }
