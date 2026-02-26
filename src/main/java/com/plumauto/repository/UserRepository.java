@@ -8,5 +8,5 @@ import java.util.List;
 
 public interface UserRepository extends MongoRepository<UserDetails, ObjectId> {
     public UserDetails findByUsername(String username);
-    public List<UserDetails> findByUserType(String userType);
+    public List<UserDetails> findByRoles(String userType);
 }

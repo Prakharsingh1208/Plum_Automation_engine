@@ -24,6 +24,8 @@ public class JobDetail {
 
     private List<BuildDetails> buildNumber;
 
+    private JobConfig jobConfig;
+
     public BuildDetails findBuildDetailsByBuildNumber(String buildNumber) {
         if (this.buildNumber != null) {
             for (BuildDetails details : this.buildNumber) {

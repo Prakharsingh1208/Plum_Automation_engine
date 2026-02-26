@@ -2,32 +2,42 @@ package com.plumauto.service;
 
 import com.plumauto.entity.UserDetails;
 import com.plumauto.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class Users {
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
     public UserDetails getUserDetails(String username){
         return userRepository.findByUsername(username);
     }
 
     public ResponseEntity<String> createUser(UserDetails user){
+        System.out.println(user.getUsername() + " " + user.getEmail() + " " + user.getPassword() + " " + user.getFirstName());
         try {
             if(userRepository.count()==0){
-                user.setUserType("admin");
-            } else if (user.getUserType().isBlank()) {
-                user.setUserType("user");
+                user.setRoles("admin");
+            } else if (user.getRoles().isBlank()) {
+                user.setRoles("user");
             }
+            user.setPassword(Objects.requireNonNull(passwordEncoder.encode(user.getPassword())));
             userRepository.save(user);
             return new ResponseEntity<>("User Successfully Created",HttpStatus.CREATED);
         } catch (Exception e) {
+            log.error(String.valueOf(e.fillInStackTrace()));
             return new ResponseEntity<>("Error Creating User",HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -46,7 +56,7 @@ public class Users {
         if(user.isEmpty()){
             return new ResponseEntity<>("User not found",HttpStatus.NOT_FOUND);
         }
-        if(user.get().getUserType().equals(editedUser.getUserType())){
+        if(user.get().getRoles().equals(editedUser.getRoles())){
             userRepository.save(editedUser);
             return new ResponseEntity<>("User Successfully Updated",HttpStatus.OK);
         }else {

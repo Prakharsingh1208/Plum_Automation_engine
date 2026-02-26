@@ -3,16 +3,15 @@ package com.plumauto.entity;
 import com.mongodb.lang.NonNull;
 import lombok.Data;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.util.List;
 
 @Document
 @Data
 public class UserDetails {
+
     @Id
     private ObjectId userId;
 
@@ -31,9 +30,12 @@ public class UserDetails {
     private String firstName;
 
     @NonNull
-    private String userType;
+    private String roles = "member";
 
-    @DBRef
-    private List<JobDetail> accessibleJobs;
+    @NonNull
+    private boolean active = true;
+
+
+    private String OrganisationName;
 
 }

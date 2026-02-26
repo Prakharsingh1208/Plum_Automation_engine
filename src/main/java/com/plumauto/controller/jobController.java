@@ -1,8 +1,9 @@
 package com.plumauto.controller;
 
 import com.plumauto.entity.JobDetail;
-import com.plumauto.repository.Job;
 import com.plumauto.service.AutomationEngine;
+import com.plumauto.service.DockerService;
+import com.plumauto.service.JobScanner;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -12,17 +13,18 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/job")
 @Slf4j
-public class Runner {
+public class jobController {
+    @Autowired
+    DockerService dockerService;
 
     @Autowired
     AutomationEngine automationEngine;
 
-    @PostMapping
+    @Autowired
+    JobScanner jobScanner;
+
+    @PostMapping("/{userName}")
     public boolean createJob(@RequestBody JobDetail jobDetail) throws IOException, InterruptedException {
-        log.info("POST /job ");
-        log.info("jobName: " + jobDetail.getJobName());
-        log.info("buildStep: " + jobDetail.getBuildStep());
-        log.info("description: " + jobDetail.getDescription());
         return automationEngine.createJob(jobDetail);
     }
 
@@ -43,7 +45,7 @@ public class Runner {
 
     @DeleteMapping("/abort/{jobName}/{buildNumber}")
     public boolean abortJob(@PathVariable String jobName,@PathVariable String buildNumber) throws IOException, InterruptedException {
-        automationEngine.abortBuild(jobName,buildNumber);
+        dockerService.abortBuild(jobName,buildNumber);
         return true;
     }
 }
