@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/user")
-public class User {
+public class UserController {
     @Autowired
      Users users;
 
@@ -26,4 +26,10 @@ public class User {
     public ResponseEntity<?> createUser(@RequestBody UserDetails user){
         return users.createUser(user);
     }
+
+    @DeleteMapping("/{userName}")
+    public ResponseEntity<?> deleteUser(@PathVariable String user){
+        return users.deleteUser(user);
+    }
+
 }

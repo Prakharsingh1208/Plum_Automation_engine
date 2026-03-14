@@ -23,8 +23,8 @@ public class jobController {
     @Autowired
     JobScanner jobScanner;
 
-    @PostMapping("/{userName}")
-    public boolean createJob(@RequestBody JobDetail jobDetail) throws IOException, InterruptedException {
+    @PostMapping//("/{userName}")
+    public boolean createJob(@RequestBody JobDetail jobDetail) throws Exception {
         return automationEngine.createJob(jobDetail);
     }
 
@@ -34,7 +34,7 @@ public class jobController {
     }
 
     @DeleteMapping
-    public boolean deleteJob(@RequestBody JobDetail job) throws IOException, InterruptedException {
+    public boolean deleteJob(@RequestBody JobDetail job) throws Exception {
         return automationEngine.deleteJob(job.getJobName());
     }
 

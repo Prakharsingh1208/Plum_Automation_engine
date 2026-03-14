@@ -6,16 +6,22 @@ import com.plumauto.repository.OrganizationRepository;
 import com.plumauto.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import java.util.Objects;
 
 @Slf4j
@@ -29,19 +35,38 @@ public class Organization {
     @Autowired
     PasswordEncoder passwordEncoder;
 
+    private final Path rootPath;
+    public Organization(@Value("${app.auto-engine.path}") String rootPath) {
+        this.rootPath = Paths.get(rootPath);
+    }
 
-    public ResponseEntity<?> createOrganization(OrganizationDetails organizationDetails){
+
+
+    public ResponseEntity<?> createOrganization(OrganizationDetails organizationDetails) throws IOException {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
         if(organizationDetails.getOrgName().split(" ").length>1){
             log.info("OrganizationDetails name should not contain spaces: " + organizationDetails.getOrgName());
             return new ResponseEntity<>("OrganizationDetails name should not contain spaces", HttpStatus.BAD_REQUEST);
         }
         try {
             organizationDetails.setPassKey(Objects.requireNonNull(passwordEncoder.encode(organizationDetails.getPassKey())));
+            assert auth != null;
+            organizationDetails.getMembers().add(userRepository.findByUsername(auth.getName()));
             organizationRepository.save(organizationDetails);
+
+            try{
+                Files.createDirectories(Paths.get(rootPath+"/"+organizationDetails.getOrgName()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
             log.info("OrganizationDetails created successfully: " + organizationDetails.getOrgName());
             return new ResponseEntity<>(organizationDetails, HttpStatus.OK);
         } catch (Exception e) {
             log.error("Error creating organizationDetails: " + e.getMessage());
+            Files.deleteIfExists(Paths.get(rootPath+"/"+organizationDetails.getOrgName()));
+
             return new ResponseEntity<>("Error creating organizationDetails", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -56,7 +81,10 @@ public class Organization {
         return new ResponseEntity<>(organizationDetails, HttpStatus.OK);
     }
 
-    public ResponseEntity<?> addUserInOrg(OrganizationDetails organizationDetails, String userName){
+    public ResponseEntity<?> addUserInOrg(OrganizationDetails organizationDetails){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        assert auth != null;
+        String userName = auth.getName();
         UserDetails user = userRepository.findByUsername(userName);
         OrganizationDetails organization = organizationRepository.findByOrgName(organizationDetails.getOrgName());
         if(user==null){
@@ -70,6 +98,8 @@ public class Organization {
         if(passwordEncoder.matches(organizationDetails.getPassKey(), organization.getPassKey())){
             organization.getMembers().addFirst(user);
             organizationRepository.save(organization);
+            user.setOrganisationName(organization.getOrgName());
+            userRepository.save(user);
             return new ResponseEntity<>("User added to organization successfully", HttpStatus.OK);
         }
         return new ResponseEntity<>("Invalid passkey", HttpStatus.BAD_REQUEST);

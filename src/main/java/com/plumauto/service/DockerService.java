@@ -66,10 +66,10 @@ public class DockerService {
 
     @Async
     public void runCommand(JobDetail jobDetail, String buildNumber) throws IOException, InterruptedException {
-        Path dirPath = Paths.get(rootPath.toAbsolutePath().toString() + "/" + jobDetail.getJobName() + "/" + buildNumber);
+        Path dirPath = Paths.get(rootPath.toAbsolutePath() + "/" + jobDetail.getJobConfig().getAllowedOrganization()+ "/" +jobDetail.getJobName() + "/" + buildNumber);
         Files.createDirectories(dirPath);
 
-        Path path = rootPath.resolve(jobDetail.getJobName());
+        Path path = rootPath.resolve(jobDetail.getJobConfig().getAllowedOrganization()+"/"+jobDetail.getJobName());
         Path logPath = path.resolve(buildNumber+"/build.logs");
         StringBuilder memoryLog = new StringBuilder();
 
@@ -135,7 +135,7 @@ public class DockerService {
         String containerName = UUID.randomUUID().toString();
         String dockerCmd = String.format(
                 "docker run --rm -v %s:/src -w /src --memory=%s --cpus=%s --name %s alpine:latest sh -c \"%s\"",
-                rootPath.toAbsolutePath().toString() + "/" + jobDetail.getJobName() + "/" + buildNumber,
+                rootPath.toAbsolutePath()+"/"+jobDetail.getJobConfig().getAllowedOrganization() + "/" + jobDetail.getJobName() + "/" + buildNumber,
                 jobDetail.getJobConfig().getMemory()+"m",
                 jobDetail.getJobConfig().getCpu(),
                 containerName,

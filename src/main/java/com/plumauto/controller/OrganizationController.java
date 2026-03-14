@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping("/organization")
 public class OrganizationController {
@@ -13,7 +15,7 @@ public class OrganizationController {
     Organization organization;
 
     @PostMapping
-    public ResponseEntity<?> createOrganization(@RequestBody OrganizationDetails organizationDetails){
+    public ResponseEntity<?> createOrganization(@RequestBody OrganizationDetails organizationDetails) throws IOException {
         return organization.createOrganization(organizationDetails);
     }
 
@@ -21,8 +23,9 @@ public class OrganizationController {
     public ResponseEntity<OrganizationDetails> getOrganization(@RequestParam String orgName){
         return organization.getOrganization(orgName);
     }
-    @PostMapping("/addUser/{userName}")
-    public ResponseEntity<?> addUserToOrganization(@PathVariable String userName,@RequestBody OrganizationDetails organizationDetails){
-        return organization.addUserInOrg(organizationDetails,userName);
+
+    @PostMapping("/addUser")
+    public ResponseEntity<?> addUserToOrganization(@RequestBody OrganizationDetails organizationDetails){
+        return organization.addUserInOrg(organizationDetails);
     }
 }
