@@ -23,7 +23,7 @@ public class jobController {
     @Autowired
     JobScanner jobScanner;
 
-    @PostMapping//("/{userName}")
+    @PostMapping
     public boolean createJob(@RequestBody JobDetail jobDetail) throws Exception {
         return automationEngine.createJob(jobDetail);
     }

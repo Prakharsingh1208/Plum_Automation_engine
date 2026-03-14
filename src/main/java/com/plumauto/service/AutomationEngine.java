@@ -111,6 +111,8 @@ public class     AutomationEngine {
             throw new RuntimeException("Job not found: " + jobDetail);
         } else if (jobDetail.getJobName().split(" ").length > 1) {
             throw new RuntimeException("Invalid Job Name: Job name should not contain spaces");
+        } else if (!isJobAccessAvailable(job.get())) {
+            throw new RuntimeException("Access for this job is denied");
         } else {
             File oldDirName = new File(rootPath + "/" + job.get().getJobConfig().getAllowedOrganization() +"/"+job.get().getJobConfig());
             File newDirName = new File(rootPath + "/" + jobDetail.getJobConfig().getAllowedOrganization() +"/"+jobDetail.getJobName());
@@ -127,9 +129,13 @@ public class     AutomationEngine {
     }
 
     public boolean runjob(String jobName) throws IOException, InterruptedException {
+
         JobDetail job = jobRepository.findByJobName(jobName);
         if (job == null) {
             throw new RuntimeException("Job not found: " + jobName);
+        }
+        if(!isJobAccessAvailable(job)){
+            return false;
         }
         String BuildNumber = String.valueOf(job.getBuildNumber().size());
 

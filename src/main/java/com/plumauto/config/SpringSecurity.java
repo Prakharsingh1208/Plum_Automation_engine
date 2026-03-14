@@ -23,7 +23,9 @@ public class SpringSecurity {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http){
         http.csrf(customizer -> customizer.disable());
-        http.authorizeHttpRequests(request -> request.requestMatchers("/job/*").authenticated().anyRequest().permitAll());
+        http.authorizeHttpRequests(request -> request.requestMatchers("/job/**").authenticated());
+        http.authorizeHttpRequests(request -> request.requestMatchers("/run/**").authenticated());
+        http.authorizeHttpRequests(request -> request.requestMatchers("/organization").authenticated().anyRequest().permitAll());
         http.formLogin(Customizer.withDefaults()).logout(Customizer.withDefaults());
         http.httpBasic(Customizer.withDefaults());
         http.sessionManagement(session -> session.maximumSessions(1));

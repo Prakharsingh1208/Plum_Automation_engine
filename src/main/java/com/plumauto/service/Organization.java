@@ -52,8 +52,17 @@ public class Organization {
         try {
             organizationDetails.setPassKey(Objects.requireNonNull(passwordEncoder.encode(organizationDetails.getPassKey())));
             assert auth != null;
-            organizationDetails.getMembers().add(userRepository.findByUsername(auth.getName()));
+            UserDetails userDetails = userRepository.findByUsername(auth.getName());
+
+            if(userDetails.getOrganisationName()!=null){
+                return new ResponseEntity<>("User is can olny be the part of 1 org",HttpStatus.BAD_REQUEST);
+            }
+
+            organizationDetails.getMembers().add(userDetails);
             organizationRepository.save(organizationDetails);
+
+            userDetails.setOrganisationName(organizationDetails.getOrgName());
+            userRepository.save(userDetails);
 
             try{
                 Files.createDirectories(Paths.get(rootPath+"/"+organizationDetails.getOrgName()));
@@ -62,7 +71,7 @@ public class Organization {
             }
 
             log.info("OrganizationDetails created successfully: " + organizationDetails.getOrgName());
-            return new ResponseEntity<>(organizationDetails, HttpStatus.OK);
+            return new ResponseEntity<>(organizationDetails.getOrgName(), HttpStatus.OK);
         } catch (Exception e) {
             log.error("Error creating organizationDetails: " + e.getMessage());
             Files.deleteIfExists(Paths.get(rootPath+"/"+organizationDetails.getOrgName()));
